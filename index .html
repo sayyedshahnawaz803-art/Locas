@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LOCAS - Ultimate Vault Pro</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6c5ce7;
+            --secondary: #00cec9;
+            --accent: #fd79a8;
+            --dark-bg: #0f0c29;
+            --glass: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+
+        body {
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 100%);
+            color: white;
+            min-height: 100vh;
+            padding-bottom: 80px;
+        }
+
+        /* --- Security Screen --- */
+        #lockScreen {
+            position: fixed; inset: 0; background: #0f0c29; z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .pin-input {
+            width: 220px; padding: 15px; text-align: center; font-size: 2rem; letter-spacing: 12px;
+            border-radius: 15px; border: 2px solid var(--secondary); background: rgba(0,0,0,0.5); color: white; outline: none;
+        }
+
+        /* --- Header --- */
+        header {
+            padding: 20px; background: rgba(255,255,255,0.05); backdrop-filter: blur(10px);
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1); sticky top: 0; z-index: 100;
+        }
+        .logo { font-size: 1.5rem; font-weight: 800; color: var(--secondary); text-shadow: 0 0 10px var(--secondary); }
+
+        /* --- Content Grid --- */
+        .container { padding: 15px; }
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .card {
+            background: var(--glass); border-radius: 20px; padding: 12px;
+            border: 1px solid rgba(255,255,255,0.1); position: relative;
+            backdrop-filter: blur(5px); transition: 0.3s;
+        }
+        .card:active { transform: scale(0.95); }
+        
+        .card-media {
+            width: 100%; height: 120px; border-radius: 15px; object-fit: cover;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.3);
+        }
+        .card-media i { font-size: 3.5rem; }
+
+        /* --- Floating Buttons --- */
+        .fab {
+            position: fixed; bottom: 90px; right: 20px; width: 65px; height: 65px;
+            background: var(--primary); border-radius: 50%; border: none;
+            color: white; font-size: 1.8rem; box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        }
+
+        /* --- Bottom Nav --- */
+        .bottom-nav {
+            position: fixed; bottom: 0; width: 100%; height: 70px;
+            background: rgba(15, 12, 41, 0.95); display: flex; justify-content: space-around;
+            align-items: center; border-top: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px);
+        }
+        .nav-item { color: #888; text-align: center; font-size: 0.75rem; cursor: pointer; }
+        .nav-item.active { color: var(--secondary); }
+        .nav-item i { font-size: 1.4rem; margin-bottom: 4px; display: block; }
+
+        /* --- Modal Settings --- */
+        .modal {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+            z-index: 1500; align-items: center; justify-content: center; padding: 20px;
+        }
+        .modal-content {
+            background: #1e1e2e; width: 100%; max-width: 400px; padding: 30px;
+            border-radius: 25px; border: 1px solid var(--primary);
+        }
+        input { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: 1px solid #333; background: #000; color: white; }
+        .btn-action { width: 100%; padding: 15px; background: var(--secondary); border: none; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+
+        .del-btn { position: absolute; top: -5px; right: -5px; background: var(--accent); color: white; border: none; border-radius: 50%; width: 25px; height: 25px; font-size: 12px; z-index: 10; }
+    </style>
+</head>
+<body>
+
+    <div id="lockScreen">
+        <i class="fas fa-fingerprint" style="font-size: 4rem; color: var(--secondary); margin-bottom: 20px;"></i>
+        <h2 id="lockTitle">Enter Secure PIN</h2>
+        <input type="password" id="pinInput" class="pin-input" maxlength="4" placeholder="••••">
+        <button onclick="handlePin()" class="btn-action" style="width: 220px;">UNLOCK</button>
+    </div>
+
+    <header>
+        <div class="logo"><i class="fas fa-shield-halved"></i> LOCAS</div>
+        <div id="stats" style="font-size: 0.8rem; opacity: 0.7;">0 Boxes</div>
+    </header>
+
+    <div class="container">
+        <div class="grid" id="mainGrid"></div>
+    </div>
+
+    <button class="fab" onclick="showModal('addModal')"><i class="fas fa-plus"></i></button>
+
+    <div class="modal" id="addModal">
+        <div class="modal-content">
+            <h3 style="color:var(--secondary)"><i class="fas fa-file-circle-plus"></i> New Document</h3>
+            <input type="text" id="noteInput" placeholder="Note (e.g. S1, Bill, Photo)">
+            <input type="file" id="fileInput" accept="image/*, .pdf, .ppt, .pptx, .doc, .docx, .xls, .xlsx">
+            <button class="btn-action" onclick="saveData()">SAVE IN VAULT</button>
+            <button onclick="closeModal('addModal')" style="background:none; border:none; color:#777; width:100%; margin-top:15px;">Close</button>
+        </div>
+    </div>
+
+    <div class="modal" id="pinModal">
+        <div class="modal-content">
+            <h3 style="color:var(--accent)"><i class="fas fa-key"></i> Change Security PIN</h3>
+            <input type="password" id="oldPin" placeholder="Enter Current PIN">
+            <input type="password" id="newPin" maxlength="4" placeholder="Enter New 4-Digit PIN">
+            <button class="btn-action" style="background:var(--accent); color:white" onclick="changePin()">UPDATE PIN</button>
+            <button onclick="closeModal('pinModal')" style="background:none; border:none; color:#777; width:100%; margin-top:15px;">Cancel</button>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="location.reload()"><i class="fas fa-house"></i>Home</div>
+        <div class="nav-item" onclick="showModal('pinModal')"><i class="fas fa-lock-open"></i>PIN Change</div>
+        <div class="nav-item" onclick="alert('Developed by S11')"><i class="fas fa-circle-user"></i>Account</div>
+    </div>
+
+    <script>
+        let db = JSON.parse(localStorage.getItem('locas_pro_v4')) || [];
+        let currentPin = localStorage.getItem('locas_pin_v4');
+
+        if(!currentPin) document.getElementById('lockTitle').innerText = "Set 4-Digit PIN";
+
+        function handlePin() {
+            let val = document.getElementById('pinInput').value;
+            if(!currentPin) {
+                if(val.length == 4) { localStorage.setItem('locas_pin_v4', val); currentPin = val; unlock(); }
+            } else {
+                if(val == currentPin) unlock(); else alert("Wrong PIN!");
+            }
+        }
+
+        function unlock() { document.getElementById('lockScreen').style.display = 'none'; render(); }
+
+        function render() {
+            let g = document.getElementById('mainGrid');
+            g.innerHTML = '';
+            db.forEach((item, i) => {
+                let card = document.createElement('div');
+                card.className = 'card';
+                let icon = getIcon(item.type);
+                
+                card.innerHTML = `
+                    <button class="del-btn" onclick="del(${i})"><i class="fas fa-times"></i></button>
+                    <div class="card-media" onclick="view('${item.data}', '${item.type}')">
+                        ${item.type.includes('image') ? `<img src="${item.data}" style="width:100%; height:100%; object-fit:cover; border-radius:15px;">` : `<i class="fas ${icon.f}" style="color:${icon.c}"></i>`}
+                    </div>
+                    <p style="font-size:0.75rem; margin-top:10px; font-weight:600; text-align:center">${item.note}</p>
+                `;
+                g.appendChild(card);
+            });
+            document.getElementById('stats').innerText = db.length + " Boxes Used";
+        }
+
+        function getIcon(type) {
+            if(type.includes('pdf')) return {f: 'fa-file-pdf', c: '#ff7675'};
+            if(type.includes('powerpoint')) return {f: 'fa-file-powerpoint', c: '#fab1a0'};
+            if(type.includes('word') || type.includes('officedocument.word')) return {f: 'fa-file-word', c: '#74b9ff'};
+            if(type.includes('excel') || type.includes('spreadsheet')) return {f: 'fa-file-excel', c: '#55efc4'};
+            return {f: 'fa-file-lines', c: '#b2bec3'};
+        }
+
+        async function saveData() {
+            let n = document.getElementById('noteInput').value || "Entry";
+            let f = document.getElementById('fileInput').files[0];
+            if(!f) return alert("Select File!");
+
+            let reader = new FileReader();
+            reader.onload = async (e) => {
+                let data = e.target.result;
+                if(f.type.includes('image')) data = await compress(data);
+
+                try {
+                    db.push({ note: n, data: data, type: f.type });
+                    localStorage.setItem('locas_pro_v4', JSON.stringify(db));
+                    closeModal('addModal');
+                    render();
+                } catch(e) { alert("Vault full! Please delete some items."); }
+            };
+            reader.readAsDataURL(f);
+        }
+
+        function compress(base64) {
+            return new Promise((res) => {
+                let img = new Image(); img.src = base64;
+                img.onload = () => {
+                    let canvas = document.createElement('canvas');
+                    let scale = Math.min(800/img.width, 800/img.height);
+                    canvas.width = img.width*scale; canvas.height = img.height*scale;
+                    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                    res(canvas.toDataURL('image/jpeg', 0.7));
+                }
+            });
+        }
+
+        function view(data, type) {
+            const byteChars = atob(data.split(',')[1]);
+            const byteNums = new Array(byteChars.length);
+            for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
+            const blob = new Blob([new Uint8Array(byteNums)], {type: type});
+            window.open(URL.createObjectURL(blob), '_blank');
+        }
+
+        function changePin() {
+            let old = document.getElementById('oldPin').value;
+            let newP = document.getElementById('newPin').value;
+            if(old === currentPin && newP.length === 4) {
+                localStorage.setItem('locas_pin_v4', newP);
+                currentPin = newP;
+                alert("PIN Updated!");
+                closeModal('pinModal');
+            } else { alert("Error: Current PIN wrong or New PIN not 4 digits!"); }
+        }
+
+        function del(i) { if(confirm("Permanently delete?")) { db.splice(i,1); localStorage.setItem('locas_pro_v4', JSON.stringify(db)); render(); } }
+        function showModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    </script>
+</body>
+</html>
